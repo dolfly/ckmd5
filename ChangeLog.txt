@@ -1,0 +1,9 @@
+
+20040117:	version 0.01 (initial release)
+	- nothing to tell
+
+20040117:	version 0.02
+	- fixed a stupid bug with namespaces. try ckmd5.sh foo.bar/baz on
+	  0.01..
+
+
