@@ -1,6 +1,6 @@
 ck = ../ckmd5
 
-all:	test1 test2 test3 test4 test5 test6 test7 test8 test9 test10
+all:	test1 test2 test3 test4 test5 test6 test7 test8 test9 test10 test11
 
 test1:	
 	@echo "test1: should print OK"
@@ -41,3 +41,7 @@ test9:
 test10:	
 	@echo "test10: should print OK"
 	@ $(ck) i.abcd
+
+test11:	
+	@echo "test11: should print OK"
+	@ $(ck) j
