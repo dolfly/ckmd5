@@ -26,6 +26,73 @@
 
 extern int errno;
 
+/* strip 'pattern' out of 'src' and copy result into 'dst'. 'dst' has
+   maxlen bytes of space. pattern matchins is case-insensitive. */
+static int strip_strcase(char *dst, char *src, char *pattern, int maxlen)
+{
+  int i, j, k;
+  int plen, slen;
+  int c1, c2;
+  int ret = 0;
+  char *tmp;
+
+  slen = strlen(src);
+  if (slen >= maxlen)
+    return 0;
+
+  plen = strlen(pattern);
+
+  i = 0;
+  k = 0;
+
+  /* copy dirname first, pattern matching applies only to basename */
+  if ((tmp = strrchr(src, (int) '/'))) {
+    i = (int) (tmp + 1 - src);
+    memcpy(dst, src, i);
+    k = i;
+  }
+
+  while (i < slen) {
+
+    j = 0;
+
+    /* try to match the pattern from &src[i] */
+    while (pattern[j] && (i + j) < slen) {
+      c1 = (int) src[i + j];
+      c2 = (int) pattern[j];
+      if (c2 == '?') {
+	if (isdigit(c1)) {
+	  j++;
+	  continue;
+	}
+	/* is not a digit, so doesn't match the pattern. */
+	break;
+
+      } else if (tolower(c1) == tolower(c2)) {
+	j++;
+	continue;
+      }
+      /* chars differ. break comparison. */
+      break;
+    }
+
+    if (pattern[j]) {
+      /* no match => copy */
+      dst[k] = src[i];
+      i++;
+      k++;
+    } else {
+      /* match => skip the length of pattern in source */
+      i += plen;
+      ret = 1;
+    }
+  }
+
+  dst[k] = 0;
+
+  return ret;
+}
+
 static int get_meta_file(FILE **metafile, char *fname)
 {
   char *slashptr;
@@ -67,7 +134,9 @@ static int get_meta_file(FILE **metafile, char *fname)
       *metafile = file;
       return CKMD5_MD5_NAME;
     }
+
   } else {
+
     ret = snprintf(metaname, sizeof(metaname), "%s.md5", fname);
     if (ret >= ((int) sizeof(metaname))) {
       return CKMD5_LONG_NAME;
@@ -217,26 +286,51 @@ int main(int argc, char **argv)
   for (i = 1; i < argc; i++) {
     fname = argv[i];
 
+    /* try changing extension to .nfo or .md5 */
     type = get_meta_file(&metafile, fname);
-    switch (type) {
-
-    case CKMD5_ILLEGAL_NAME:
+    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
       continue;
-
-    case CKMD5_NO_META:
-      fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
+    } else if (type == CKMD5_ILLEGAL_NAME) {
       continue;
-
-    case CKMD5_LONG_NAME:
+    } else if (type == CKMD5_LONG_NAME) {
       fprintf(stderr, "%s: too long a name\n", fname);
       continue;
+    } else if (type == CKMD5_NO_META) {
+      /* changing extension didn't help. try other tricks. */
+      char tempname[PATH_MAX];
+      if (strip_strcase(tempname, fname, "-part?", sizeof(tempname))) {
+	type = get_meta_file(&metafile, tempname);
+      }
+    }
 
-    case CKMD5_NFO_NAME:
-    case CKMD5_MD5_NAME:
-      break;
-
-    default:
+    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
       fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      continue;
+    } else if (type == CKMD5_ILLEGAL_NAME) {
+      continue;
+    } else if (type == CKMD5_LONG_NAME) {
+      fprintf(stderr, "%s: too long a name\n", fname);
+      continue;
+    } else if (type == CKMD5_NO_META) {
+      /* stripping -part? didn't help. try other tricks. */
+      char tempname[PATH_MAX];
+      if (strip_strcase(tempname, fname, "-cd?", sizeof(tempname))) {
+	type = get_meta_file(&metafile, tempname);
+      }
+    }
+
+    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      continue;
+    } else if (type == CKMD5_ILLEGAL_NAME) {
+      continue;
+    } else if (type == CKMD5_LONG_NAME) {
+      fprintf(stderr, "%s: too long a name\n", fname);
+      continue;
+    } else if (type == CKMD5_NO_META) {
+      /* tricks didn't help. continue. */
+      fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
       continue;
     }
 
@@ -294,7 +388,11 @@ int main(int argc, char **argv)
     place = checksums;
     for (j = 0; j < n_sums; j++) {
       if (strcasecmp(md5sum, place) == 0) {
-	printf("OK:  %s\n", fname);
+	if (j == 0) {
+	  printf("OK:  %s\n", fname);
+	} else {
+	  printf("OK:  %s (%d%s checksum in nfo)\n", fname, j + 1, j == 1 ? "nd" : (j == 2 ? "rd" : "th"));
+	}
 	break;
       } 
       place += 33;
