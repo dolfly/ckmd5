@@ -93,9 +93,8 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
   char *place;
 
   while (1) {
-    if (!fgets(line, sizeof(line), metafile)) {
+    if (!fgets(line, sizeof(line), metafile))
       break;
-    }
 
     len = strlen(line);
     if (line[len - 1] == '\n') {
