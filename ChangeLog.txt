@@ -18,3 +18,6 @@
 	- fixed a bug that ckmd5 didn't search for a file named
 	  'name.md5' where 'name' has dots (an extension)
 
+20040825:      version 0.06
+	- ckmd5 returns error code if checksum is bad, can't be found or
+	  something unexpected happens

@@ -258,7 +258,10 @@ static void print_version(void)
 static void print_help(char *prog)
 {
   printf("ckmd5 usage:\n\n");
-  printf(" %s FILE1 FILE2 ...\n", prog);
+  printf(" %s FILE1 FILE2 ...\n\n", prog);
+  printf("In addition printing OK / BAD for each checksum found, ckmd5 returns non-zero\n");
+  printf("exit code if any of the checked files either didn't have checksum or checksum\n");
+  printf("was bad.\n");
 }
 
 int main(int argc, char **argv)
@@ -275,6 +278,7 @@ int main(int argc, char **argv)
   char *checksums;
   int n_sums;
   char *place;
+  int main_ret = 0;
 
   if (argc == 2) {
     if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
@@ -299,11 +303,13 @@ int main(int argc, char **argv)
     type = get_meta_file(&metafile, fname);
     if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
       fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_ILLEGAL_NAME) {
       continue;
     } else if (type == CKMD5_LONG_NAME) {
       fprintf(stderr, "%s: too long a name\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_NO_META) {
       /* changing extension didn't help. try other tricks. */
@@ -315,11 +321,13 @@ int main(int argc, char **argv)
 
     if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
       fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_ILLEGAL_NAME) {
       continue;
     } else if (type == CKMD5_LONG_NAME) {
       fprintf(stderr, "%s: too long a name\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_NO_META) {
       /* stripping -part? didn't help. try other tricks. */
@@ -331,11 +339,13 @@ int main(int argc, char **argv)
 
     if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
       fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_ILLEGAL_NAME) {
       continue;
     } else if (type == CKMD5_LONG_NAME) {
       fprintf(stderr, "%s: too long a name\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_NO_META) {
       /* stripping -cd? didn't help. try other tricks. */
@@ -347,15 +357,18 @@ int main(int argc, char **argv)
 
     if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
       fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_ILLEGAL_NAME) {
       continue;
     } else if (type == CKMD5_LONG_NAME) {
       fprintf(stderr, "%s: too long a name\n", fname);
+      main_ret = 1;
       continue;
     } else if (type == CKMD5_NO_META) {
       /* tricks didn't help. continue. */
       fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
+      main_ret = 1;
       continue;
     }
 
@@ -365,6 +378,7 @@ int main(int argc, char **argv)
 
     if (n_sums == 0) {
       printf("checksum not found: %s\n", fname);
+      main_ret = 1;
       continue;
     }
 
@@ -372,10 +386,12 @@ int main(int argc, char **argv)
 
     if (fd_in < 0) {
       fprintf(stderr, "%s: %s: No such file\n", argv[0], fname);
+      main_ret = 0;
       continue;
     }
-    
+
     if (fstat(fd_in, &st)) {
+      main_ret = 0;
       continue;
     }
     
@@ -391,6 +407,7 @@ int main(int argc, char **argv)
       if (ret < 0) {
 	if (errno != EINTR) {
 	  perror("md5test read error");
+	  main_ret = 1;
 	  break;
 	}
 	continue;
@@ -425,6 +442,7 @@ int main(int argc, char **argv)
 
     if (j == n_sums) {
       printf("BAD: %s\n", fname);
+      main_ret = 1;
     }
 
     fflush(stdout);
@@ -432,5 +450,6 @@ int main(int argc, char **argv)
 
     free(checksums);
   }
-  return 0;
+
+  return main_ret;
 }
