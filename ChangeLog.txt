@@ -8,5 +8,4 @@
 
 20040118:       version 0.03
 	- rewrite in pure C
-
-
+	- add help and version information

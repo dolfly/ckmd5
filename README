@@ -2,16 +2,10 @@ md5sum checker for nfo/md5 files
 --------------------------------
 
 usage:
-	ckmd5.sh FILE1 FILE2 ...
+	ckmd5 FILE1 FILE2 ...
 
-ckmd5.sh computes md5sums of parameter files, and compares the sums to
+ckmd5 computes md5sums of parameter files, and compares the sums to
 values found from associated .nfo or .md5 files.
-
-md5test executable is provided which is similar to md5sum command. the problem
-with md5sum command is that it doesn't flush stdout often enough for
-impatient people wanting to see progress of md5sum computations. md5sum
-command could be launched separately for each file and hence md5test would
-be useless, but separate launches would also be more bloat.
 
 example 1:
 	initial setup: there exists files:
@@ -19,10 +13,10 @@ example 1:
 		foo.nfo
 			foo.nfo contains a line with 'md5' and 32 consecutive
 			hex digits after the 'md5' text string.
-	ckmd5.sh foo.avi
+	ckmd5 foo.avi
 		will do following:
-		1. compute the md5sum of the file foo.avi
-		2. locate the md5sum from the file foo.nfo
+		1. locate the md5sum from the file foo.nfo
+		2. compute the md5sum of the file foo.avi
 		3. compare the md5sums, and report if okay, bad or sum not
 		   found
 
@@ -30,15 +24,12 @@ example 2:
 	initial setup: there exists files:
 		redhat.linux.iso
 		redhat.linux.md5
-	ckmd5.sh redhat.linux.iso
+	ckmd5 redhat.linux.iso
 		will do following:
-		1. compute the md5sum of the file redhat.linux.iso
-		2. locate the md5sum from the file redhat.linux.md5
+		1. locate the md5sum from the file redhat.linux.md5
+		2. compute the md5sum of the file redhat.linux.iso
 		3. compare the md5sums, and report if okay, bad or sum not
 		   found
-
-requirements:
-	- python 1.x or 2.x
 
 author:
 	Heikki Orsila <heikki.orsila@iki.fi>

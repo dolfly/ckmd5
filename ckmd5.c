@@ -172,6 +172,16 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
   return n_checksums;
 }
 
+static void print_version(void)
+{
+  fprintf(stderr, "ckmd5-%s by Heikki Orsila <heikki.orsila@iki.fi>\n", VERSION);
+}
+
+static void print_help(char *prog)
+{
+  fprintf(stderr, "ckmd5 usage:\n\n");
+  fprintf(stderr, " %s FILE1 FILE2 ...\n", prog);
+}
 
 int main(int argc, char **argv)
 {
@@ -187,6 +197,22 @@ int main(int argc, char **argv)
   char *checksums;
   int n_sums;
   char *place;
+
+  if (argc == 2) {
+    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+      print_help(argv[0]);
+      return 0;
+    }
+    if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0) {
+      print_version();
+      return 0;
+    }
+  }
+
+  if (argc == 1) {
+    print_help(argv[0]);
+    return 0;
+  }
 
   for (i = 1; i < argc; i++) {
     fname = argv[i];
