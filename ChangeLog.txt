@@ -13,3 +13,8 @@
 20040119:      version 0.04
 	- add -cd? and -part? and -sample heuristics support to find .nfo
 	  names better
+
+20040121:      version 0.05
+	- fixed a bug that ckmd5 didn't search for a file named
+	  'name.md5' where 'name' has dots (an extension)
+

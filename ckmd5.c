@@ -135,6 +135,15 @@ static int get_meta_file(FILE **metafile, char *fname)
       return CKMD5_MD5_NAME;
     }
 
+    ret = snprintf(metaname, sizeof(metaname), "%s.md5", fname);
+    if (ret >= ((int) sizeof(metaname))) {
+      return CKMD5_LONG_NAME;
+    }
+    if ((file = fopen(metaname, "r"))) {
+      *metafile = file;
+      return CKMD5_MD5_NAME;
+    }
+
   } else {
 
     ret = snprintf(metaname, sizeof(metaname), "%s.md5", fname);
