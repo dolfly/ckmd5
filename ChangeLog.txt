@@ -6,4 +6,7 @@
 	- fixed a stupid bug with namespaces. try ckmd5.sh foo.bar/baz on
 	  0.01..
 
+20040118:       version 0.03
+	- rewrite in pure C
+
 

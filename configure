@@ -1,0 +1,31 @@
+#!/bin/sh
+
+prefix=/usr/local
+
+for opt in "$@" ; do
+	case $opt in
+	--prefix=*)
+		prefix=`echo $opt | sed -n 's/--prefix=\(.*\)/\1/p'`
+		;;
+	*)
+		echo "configure parameter error"
+		exit
+		;;
+	esac
+done
+
+if gcc -W -Wall -O2 -o configure.test configure.test.c 2>/dev/null ; then
+    if ./configure.test ; then
+	true
+    else
+	echo "error with type sizes"
+	exit
+    fi
+else
+    echo "fatal error in configure with gcc!"
+    exit
+fi
+
+sed -e "s|{DEST}|$prefix/bin|g" < Makefile.in > Makefile
+
+echo "would install ckmd5 to $prefix/bin"

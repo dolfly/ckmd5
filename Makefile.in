@@ -1,20 +1,20 @@
 CC = gcc
 CFLAGS = -W -Wall -O2
 
-all:	md5test
+all:	ckmd5
 
 install:	all
 	mkdir -p {DEST}
-	install md5test ckmd5.sh md5ck.py {DEST}/
+	install ckmd5 {DEST}/
 
 clean:	
-	rm -f md5test configure.test *.o *~
+	rm -f ckmd5 configure.test *.o *~
 
-md5test:	md5test.o md5c.o
-	$(CC) $(CFLAGS) -o md5test md5test.o md5c.o
+ckmd5:	ckmd5.o md5c.o
+	$(CC) $(CFLAGS) -o ckmd5 ckmd5.o md5c.o
 
-md5test.o:	md5test.c md5.h
-	$(CC) $(CFLAGS) -c md5test.c
+ckmd5.o:	ckmd5.c md5.h
+	$(CC) $(CFLAGS) -c ckmd5.c
 
 md5c.o:	md5.h md5c.c
 	$(CC) $(CFLAGS) -c md5c.c
