@@ -329,6 +329,22 @@ int main(int argc, char **argv)
       fprintf(stderr, "%s: too long a name\n", fname);
       continue;
     } else if (type == CKMD5_NO_META) {
+      /* stripping -cd? didn't help. try other tricks. */
+      char tempname[PATH_MAX];
+      if (strip_strcase(tempname, fname, "-sample", sizeof(tempname))) {
+	type = get_meta_file(&metafile, tempname);
+      }
+    }
+
+    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+      continue;
+    } else if (type == CKMD5_ILLEGAL_NAME) {
+      continue;
+    } else if (type == CKMD5_LONG_NAME) {
+      fprintf(stderr, "%s: too long a name\n", fname);
+      continue;
+    } else if (type == CKMD5_NO_META) {
       /* tricks didn't help. continue. */
       fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
       continue;

@@ -9,3 +9,7 @@
 20040118:       version 0.03
 	- rewrite in pure C
 	- add help and version information
+
+20040119:      version 0.04
+	- add -cd? and -part? and -sample heuristics support to find .nfo
+	  names better
