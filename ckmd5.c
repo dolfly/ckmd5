@@ -80,8 +80,7 @@ static int get_meta_file(FILE **metafile, char *fname)
   return CKMD5_NO_META;
 }
 
-static int handle_meta_file(char **checksums, FILE *metafile, char *fname,
-			    int is_nfo)
+static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
 {
   char *c = 0;
   int c_size = 0;
@@ -92,7 +91,6 @@ static int handle_meta_file(char **checksums, FILE *metafile, char *fname,
   int len;
   int ndigits;
   char *place;
-  int wspaces;
 
   while (1) {
     if (!fgets(line, sizeof(line), metafile)) {
@@ -108,24 +106,7 @@ static int handle_meta_file(char **checksums, FILE *metafile, char *fname,
     if (!is_nfo) {
       if (strspn(line, "0123456789abcdefABCDEF") == 32) {
 	/* at least 1 whitespace character or \0 must follow a valid md5sum */
-	wspaces = 0;
-	i = 32;
-	while (i < len && isspace((int) line[i])) {
-	  i++;
-	  wspaces++;
-	}
-	if (i == len || wspaces == 0)
-	  continue;
-
-	/* skip an asterix if exists */
-	if (line[i] == '*') {
-	  i++;
-	}
-
-	if (i == len)
-	  continue;
-
-	if (strcmp(line + i, fname))
+	if (32 < len && !isspace((int) line[32]))
 	  continue;
 
 	c_size = c_size ? c_size * 2 : 1;
@@ -205,7 +186,7 @@ int main(int argc, char **argv)
   FILE *metafile;
   int type;
   char *checksums;
-  int n_checksums;
+  int n_sums;
   char *place;
 
   for (i = 1; i < argc; i++) {
@@ -215,15 +196,14 @@ int main(int argc, char **argv)
     switch (type) {
 
     case CKMD5_ILLEGAL_NAME:
-      fprintf(stderr, "%s is not an allowed name (must not end in .nfo or .md5)\n", fname);
       continue;
 
     case CKMD5_NO_META:
-      fprintf(stderr, "can not find .nfo or .md5 file for %s\n", fname);
+      fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
       continue;
 
     case CKMD5_LONG_NAME:
-      fprintf(stderr, "%s is too long a name\n", fname);
+      fprintf(stderr, "%s: too long a name\n", fname);
       continue;
 
     case CKMD5_NFO_NAME:
@@ -236,10 +216,10 @@ int main(int argc, char **argv)
     }
 
     checksums = 0;
-    n_checksums = handle_meta_file(&checksums, metafile, fname, type == CKMD5_NFO_NAME);
+    n_sums = handle_meta_file(&checksums, metafile, type == CKMD5_NFO_NAME);
     fclose(metafile);
 
-    if (n_checksums == 0) {
+    if (n_sums == 0) {
       printf("checksum not found: %s\n", fname);
       continue;
     }
@@ -287,7 +267,7 @@ int main(int argc, char **argv)
 	    buf[14], buf[15]);
 
     place = checksums;
-    for (j = 0; j < n_checksums; j++) {
+    for (j = 0; j < n_sums; j++) {
       if (strcasecmp(md5sum, place) == 0) {
 	printf("OK:  %s\n", fname);
 	break;
@@ -295,7 +275,7 @@ int main(int argc, char **argv)
       place += 33;
     }
 
-    if (j == n_checksums) {
+    if (j == n_sums) {
       printf("BAD: %s\n", fname);
     }
 

@@ -27,7 +27,7 @@ test6:
 	@ $(ck) e.mpg
 
 test7:	
-	@echo "test7: should say checksum not found"
+	@echo "test7: should say checksum file not found"
 	@ $(ck) f.ogm
 
 test8:	
