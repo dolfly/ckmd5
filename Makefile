@@ -5,8 +5,8 @@ VERSION="0.06"
 all:	ckmd5
 
 install:	all
-	mkdir -p {DEST}
-	install ckmd5 {DEST}/
+	mkdir -p /usr/local/bin
+	install ckmd5 /usr/local/bin/
 
 clean:	
 	rm -f ckmd5 configure.test *.o *~

@@ -252,13 +252,13 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
 
 static void print_version(void)
 {
-  fprintf(stderr, "ckmd5-%s by Heikki Orsila <heikki.orsila@iki.fi>\n", VERSION);
+  printf("ckmd5-%s by Heikki Orsila <heikki.orsila@iki.fi>\n", VERSION);
 }
 
 static void print_help(char *prog)
 {
-  fprintf(stderr, "ckmd5 usage:\n\n");
-  fprintf(stderr, " %s FILE1 FILE2 ...\n", prog);
+  printf("ckmd5 usage:\n\n");
+  printf(" %s FILE1 FILE2 ...\n", prog);
 }
 
 int main(int argc, char **argv)
