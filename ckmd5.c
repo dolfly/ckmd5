@@ -310,7 +310,7 @@ static void print_help(char *prog)
   printf("\n");
   printf("ckmd5 uses various heuristics to map files into associated nfo file names.\n");
   printf("If '-cdX', where X is a number, is found from the file name, then it is removed\n");
-  printf("from the name. Thus foo-cd1.avi would be associated with foo.nfo.\n");
+  printf("from the name. Thus foo-cd1-bar.avi would be associated with foo-bar.nfo.\n");
   printf("The same replacement policy is used for: '-cdX', '-partX' and '-sample'.\n");
   printf("\n");
   printf("Mode 2:\n");

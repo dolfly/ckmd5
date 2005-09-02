@@ -99,6 +99,13 @@ if test "$?" = "0" ; then
     ret="-1"
 fi
 
+msg="test15: expect success"
+$ck foo-cd1-bar.avi > /dev/null 2>/dev/null
+if test "$?" != "0" ; then
+    echo "error: $msg"
+    ret="-1"
+fi
+
 if test "$ret" = "0" ; then
     echo "Test successful."
 fi

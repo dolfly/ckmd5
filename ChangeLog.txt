@@ -10,6 +10,7 @@
 
 	  Advantage of this mode is that md5sums can be directly appended
 	  to normal nfo files.
+	- Improved documentation.
 
 
 2004-08-25:      version 0.06

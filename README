@@ -33,21 +33,24 @@ listed in the same text file. man md5sum for more info.
 
 Examples:
 
-Example 1:
+	Example 1:
 	Given an avi file, and an nfo file with mode 1 compliant checksums 
 	inside:
 		ckmd5 foo.avi
 	Should report whether foo.nfo contains valid or invalid checksum.
 
-Example 2:
+	Example 2:
 	Following should return success for ckmd5:
 		echo >> foo.nfo
 		md5sum foo.avi >> foo.nfo
 		ckmd5 -c foo.nfo
 
-Example 3:
+	Example 3:
 	Use ckmd5 like md5sum:
 		ckmd5 -c md5.txt
 
-author:
+Author:
 	Heikki Orsila <heikki.orsila@iki.fi>
+
+Web site:
+	http://www.iki.fi/shd/foss/ckmd5/
