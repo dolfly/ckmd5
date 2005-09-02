@@ -23,7 +23,7 @@ normal 'md5sum -c md5.txt' does.
 
 ckmd5 uses various heuristics to map files into associated nfo file names.
 If '-cdX', where X is a number, is found from the file name, then it is removed
-from the name. Thus foo-cd1.avi would be associated with foo.nfo.
+from the name. Thus foo-cd1-bar.avi would be associated with foo-bar.nfo.
 The same replacement policy is used for: '-cdX', '-partX' and '-sample'.
 
 Mode 2:

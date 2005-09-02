@@ -308,6 +308,11 @@ static void print_help(char *prog)
   printf("returned. Note that this mode does not read filenames from nfo/md5 files like\n");
   printf("normal 'md5sum -c md5.txt' does.\n");
   printf("\n");
+  printf("ckmd5 uses various heuristics to map files into associated nfo file names.\n");
+  printf("If '-cdX', where X is a number, is found from the file name, then it is removed\n");
+  printf("from the name. Thus foo-cd1.avi would be associated with foo.nfo.\n");
+  printf("The same replacement policy is used for: '-cdX', '-partX' and '-sample'.\n");
+  printf("\n");
   printf("Mode 2:\n");
   printf("By using -c switch the ckmd5 operates like 'md5sum -c' does. It reads lines\n");
   printf("from a given text file, and compares found checksums with checksums of files\n");
