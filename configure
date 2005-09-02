@@ -29,13 +29,14 @@ else
     exit
 fi
 
-if test -z "$packageprefix" ; then
-    dst="$prefix/bin"
-else
-    dst="$packageprefix$prefix/bin"
+bindst="$prefix/bin"
+docdst="$prefix/share/doc/ckmd5"
+if test -n "$packageprefix" ; then
+    bindst="$packageprefix$bindst"
+    docdst="$packageprefix$docdst"
 fi
 
-sed -e "s|{DEST}|$dst|g" < Makefile.in > Makefile
+sed -e "s|{BINDEST}|$bindst|g" -e "s|{DOCDEST}|$docdst|g" < Makefile.in > Makefile
 
 echo
 echo "Configuration parameters given:"

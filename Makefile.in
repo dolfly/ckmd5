@@ -4,10 +4,11 @@ CFLAGS = -Wall -O2
 all:	ckmd5
 
 install:	all
-	mkdir -p "{BINDEST}"
-	mkdir -p "{DOCDEST}"
+	mkdir -p "{BINDEST}" "{DOCDEST}"
+	chmod a+rx "{BINDEST}" "{DOCDEST}"
 	install ckmd5 "{BINDEST}/"
 	cp README "{DOCDEST}/"
+	chmod a+r "{DOCDEST}/README"
 
 clean:	
 	rm -f ckmd5 configure.test *.o *~
@@ -19,7 +20,7 @@ check:
 ckmd5:	ckmd5.o md5c.o
 	$(CC) $(CFLAGS) -o ckmd5 ckmd5.o md5c.o
 
-ckmd5.o:	ckmd5.c md5.h
+ckmd5.o:	ckmd5.c md5.h version.h
 	$(CC) $(CFLAGS) -c ckmd5.c
 
 md5c.o:	md5.h md5c.c
