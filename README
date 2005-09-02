@@ -10,9 +10,14 @@ Mode 1:
 For each given file (say, FILE1.avi, FILE2.mpg, ...) ckmd5 looks for an
 associated nfo or md5 file. If one is found, it scans that file for md5
 checksums. Each checksum must have string 'md5' on the same line before the
-actual checksum. For example, the nfo should contain a line:
+actual checksum. However, if a checksum is in the beginning of a line then
+the 'md5' string is not required. For example, an nfo should contain a line:
 
         md5sum: 14758f1afd44c09b7992073ccf00b43d
+or
+	^14758f1afd44c09b7992073ccf00b43d
+
+Where ^ denotes line start.
 
 It grabs those checksums, and computes md5 checksums of the given
 files. Computed checksums are compared to reference checksums. If any

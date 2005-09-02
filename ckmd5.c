@@ -163,7 +163,7 @@ static int get_meta_file(FILE **metafile, char *fname)
 
 static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
 {
-  char *c = 0;
+  char *c = NULL;
   int c_size = 0;
   char *new;
   char line[MAX_LINE];
@@ -173,37 +173,36 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
   int ndigits;
   char *place;
 
-  while (1) {
-    if (!fgets(line, sizeof(line), metafile))
-      break;
+  while (fgets(line, sizeof(line), metafile)) {
 
     len = strlen(line);
     if (line[len - 1] == '\n') {
-      line[len - 1] = 0;
       len--;
+      line[len] = 0;
     }
 
-    if (!is_nfo) {
-      if (strspn(line, "0123456789abcdefABCDEF") == 32) {
-	/* at least 1 whitespace character or \0 must follow a valid md5sum */
-	if (32 < len && !isspace((int) line[32]))
-	  continue;
+    if (strspn(line, "0123456789abcdefABCDEF") == 32) {
+      /* at least 1 whitespace character or \0 must follow a valid md5sum */
+      if (len < 33 || !isspace(line[32]))
+	goto notinbeginning;
 
-	c_size = c_size ? c_size * 2 : 1;
-	new = realloc(c, c_size * 33);
-	if (!new) {
-	  fprintf(stderr, "not enough memory for checksums\n");
-	  return n_checksums;
-	}
-	c = new;
-	place = &c[n_checksums * 33];
-	memcpy(place, line, 32);
-	place[32] = 0;
-	n_checksums++;
-	break;
+      c_size = c_size ? c_size * 2 : 1;
+      new = realloc(c, c_size * 33);
+      if (new == NULL) {
+	free(c);
+	fprintf(stderr, "Not enough memory for checksums.\n");
+	return n_checksums;
       }
-      continue;
+      c = new;
+      place = &c[n_checksums * 33];
+      memcpy(place, line, 32);
+      place[32] = 0;
+      n_checksums++;
     }
+
+  notinbeginning:
+    if (!is_nfo)
+      continue;
 
     i = 0;
     while (i < len) {
@@ -235,8 +234,9 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
 
 	c_size = c_size ? c_size * 2 : 1;
 	new = realloc(c, c_size * 33);
-	if (!new) {
-	  fprintf(stderr, "not enough memory for checksums\n");
+	if (new == NULL) {
+	  free(c);
+	  fprintf(stderr, "Not enough memory for checksums.\n");
 	  return n_checksums;
 	}
 	c = new;
@@ -297,9 +297,14 @@ static void print_help(char *prog)
   printf("For each given file (say, FILE1.avi, FILE2.mpg, ...) ckmd5 looks for an\n");
   printf("associated nfo or md5 file. If one is found, it scans that file for md5\n");
   printf("checksums. Each checksum must have string 'md5' on the same line before the\n");
-  printf("actual checksum. For example, the nfo should contain a line:\n");
+  printf("actual checksum. However, if a checksum is in the beginning of a line then\n");
+  printf("the 'md5' string is not required. For example, an nfo should contain a line:\n");
   printf("\n");
   printf("        md5sum: 14758f1afd44c09b7992073ccf00b43d\n");
+  printf("or\n");
+  printf("        ^14758f1afd44c09b7992073ccf00b43d\n");
+  printf("\n");
+  printf("Where ^ denotes line start.\n");
   printf("\n");
   printf("It grabs those checksums, and computes md5 checksums of the given\n");
   printf("files. Computed checksums are compared to reference checksums. If any\n");

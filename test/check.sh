@@ -106,6 +106,13 @@ if test "$?" != "0" ; then
     ret="-1"
 fi
 
+msg="test16: expect success"
+$ck m.avi > /dev/null 2>/dev/null
+if test "$?" != "0" ; then
+    echo "error: $msg"
+    ret="-1"
+fi
+
 if test "$ret" = "0" ; then
     echo "Test successful."
 fi

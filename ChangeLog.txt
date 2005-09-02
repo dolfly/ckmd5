@@ -13,6 +13,8 @@
 	- Improved documentation.
 	- Improved configure script to support --package-prefix switch.
 	- Improved test scripts. Use 'make check' to execute test cases.
+	- Checksums in nfo files are accepted without 'md5' string if they
+	  are in the beginning of a line.
 
 2004-08-25:      version 0.06
 	- ckmd5 returns error code if checksum is bad, can't be found or
