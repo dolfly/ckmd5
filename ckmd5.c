@@ -17,6 +17,7 @@
 #define MAX_LINE 4096
 
 #include "md5.h"
+#include "version.h"
 
 #define CKMD5_ILLEGAL_NAME 0
 #define CKMD5_LONG_NAME 1
@@ -93,6 +94,7 @@ static int strip_strcase(char *dst, char *src, char *pattern, int maxlen)
   return ret;
 }
 
+
 static int get_meta_file(FILE **metafile, char *fname)
 {
   char *slashptr;
@@ -157,6 +159,7 @@ static int get_meta_file(FILE **metafile, char *fname)
   }
   return CKMD5_NO_META;
 }
+
 
 static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
 {
@@ -250,10 +253,38 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
   return n_checksums;
 }
 
+
+static int open_regular_file(const char *name)
+{
+  int fd;
+  struct stat st;
+  fd = open(name, O_RDONLY);
+
+  if (fd < 0) {
+    fprintf(stderr, "%s: No such file\n", name);
+    return -1;
+  }
+
+  if (fstat(fd, &st)) {
+    close(fd);
+    return -1;
+  }
+
+  if (!S_ISREG(st.st_mode)) {
+    close(fd);
+    fprintf(stderr, "%s is not a regular file\n", name);
+    return -1;
+  }
+
+  return fd;
+}
+
+
 static void print_version(void)
 {
-  printf("ckmd5-%s by Heikki Orsila <heikki.orsila@iki.fi>\n", VERSION);
+  printf("ckmd5-%s by Heikki Orsila <heikki.orsila@iki.fi>\n", CKMD5_VERSION);
 }
+
 
 static void print_help(char *prog)
 {
@@ -264,15 +295,56 @@ static void print_help(char *prog)
   printf("was bad.\n");
 }
 
-int main(int argc, char **argv)
+
+static int stream_checksum(char *md5str, int fd, size_t md5strlen)
 {
   MD5_CTX c;
+  unsigned char readbuf[4096];
+  unsigned char buf[16];
+
+  int ret = 0;
+  ssize_t fret;
+
+  if (md5strlen < 33) {
+    fprintf(stderr, "too short a buffer\n");
+    exit(-1);
+  }
+
+  MD5Init(&c);
+
+  while (1) {
+    fret = read(fd, readbuf, sizeof(readbuf));
+    if (fret < 0) {
+      if (errno != EINTR && errno != EAGAIN) {
+	perror("read error");
+	ret = 1;
+	break;
+      }
+      continue;
+    } else if (fret == 0) {
+      break;
+    }
+    MD5Update(&c, readbuf, fret);
+  }
+
+  MD5Final(buf, &c);
+
+  snprintf(md5str, md5strlen,
+	   "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",
+	   buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
+	   buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13],
+	   buf[14], buf[15]);
+
+  return ret;
+}
+
+
+int main(int argc, char **argv)
+{
   int i, j, ret;
-  unsigned char buf[4096];
-  char md5sum[33];
+  char md5str[33];
   char *fname;
-  struct stat st;
-  int fd_in;
+  int fd;
   FILE *metafile;
   int type;
   char *checksums;
@@ -280,175 +352,230 @@ int main(int argc, char **argv)
   char *place;
   int main_ret = 0;
 
-  if (argc == 2) {
-    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+  int check_mode = 0;
+
+  FILE *cf;
+  char line[PATH_MAX + 64];
+  int linelen;
+
+
+  for (i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       print_help(argv[0]);
       return 0;
     }
-    if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0) {
+    if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
       print_version();
       return 0;
     }
+    if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--check") == 0) {
+      check_mode = 1;
+      continue;
+    }
+    if (strcmp(argv[i], "--") == 0) {
+      i++;
+      break;
+    }
+    if (argv[i][0] == '-') {
+      fprintf(stderr, "illegal arg: %s\n", argv[i]);
+      return 1;
+    }
+    break;
   }
 
-  if (argc == 1) {
+  if (i == argc) {
     print_help(argv[0]);
     return 0;
   }
 
-  for (i = 1; i < argc; i++) {
+
+  for (; i < argc; i++) {
     fname = argv[i];
 
-    /* try changing extension to .nfo or .md5 */
-    type = get_meta_file(&metafile, fname);
-    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
-      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_ILLEGAL_NAME) {
-      continue;
-    } else if (type == CKMD5_LONG_NAME) {
-      fprintf(stderr, "%s: too long a name\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_NO_META) {
-      /* changing extension didn't help. try other tricks. */
-      char tempname[PATH_MAX];
-      if (strip_strcase(tempname, fname, "-part?", sizeof(tempname))) {
-	type = get_meta_file(&metafile, tempname);
-      }
-    }
-
-    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
-      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_ILLEGAL_NAME) {
-      continue;
-    } else if (type == CKMD5_LONG_NAME) {
-      fprintf(stderr, "%s: too long a name\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_NO_META) {
-      /* stripping -part? didn't help. try other tricks. */
-      char tempname[PATH_MAX];
-      if (strip_strcase(tempname, fname, "-cd?", sizeof(tempname))) {
-	type = get_meta_file(&metafile, tempname);
-      }
-    }
-
-    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
-      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_ILLEGAL_NAME) {
-      continue;
-    } else if (type == CKMD5_LONG_NAME) {
-      fprintf(stderr, "%s: too long a name\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_NO_META) {
-      /* stripping -cd? didn't help. try other tricks. */
-      char tempname[PATH_MAX];
-      if (strip_strcase(tempname, fname, "-sample", sizeof(tempname))) {
-	type = get_meta_file(&metafile, tempname);
-      }
-    }
-
-    if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
-      fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_ILLEGAL_NAME) {
-      continue;
-    } else if (type == CKMD5_LONG_NAME) {
-      fprintf(stderr, "%s: too long a name\n", fname);
-      main_ret = 1;
-      continue;
-    } else if (type == CKMD5_NO_META) {
-      /* tricks didn't help. continue. */
-      fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
-      main_ret = 1;
-      continue;
-    }
-
-    checksums = 0;
-    n_sums = handle_meta_file(&checksums, metafile, type == CKMD5_NFO_NAME);
-    fclose(metafile);
-
-    if (n_sums == 0) {
-      printf("checksum not found: %s\n", fname);
-      main_ret = 1;
-      continue;
-    }
-
-    fd_in = open(fname, O_RDONLY);
-
-    if (fd_in < 0) {
-      fprintf(stderr, "%s: %s: No such file\n", argv[0], fname);
-      main_ret = 0;
-      continue;
-    }
-
-    if (fstat(fd_in, &st)) {
-      main_ret = 0;
-      continue;
-    }
-    
-    if (!S_ISREG(st.st_mode)) {
-      fprintf(stderr, "%s: %s is not a regular file\n", argv[0], fname);
-      continue;
-    }
-
-    MD5Init(&c);
-
-    while (1) {
-      ret = read(fd_in, buf, sizeof(buf));
-      if (ret < 0) {
-	if (errno != EINTR) {
-	  perror("md5test read error");
-	  main_ret = 1;
-	  break;
-	}
+    if (check_mode == 0) {
+      /* try changing extension to .nfo or .md5 */
+      type = get_meta_file(&metafile, fname);
+      if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+	fprintf(stderr, "holy shit. ckmd5 bugs with %s\n", fname);
+	main_ret = 1;
 	continue;
-      } else if (ret == 0) {
-	break;
-      }
-      MD5Update(&c, buf, ret);
-    }
-
-    close(fd_in);
-
-    MD5Final((unsigned char *) buf, &c);
-
-    sprintf(md5sum,
-	    "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",
-	    buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
-	    buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13],
-	    buf[14], buf[15]);
-
-    place = checksums;
-    for (j = 0; j < n_sums; j++) {
-      if (strcasecmp(md5sum, place) == 0) {
-	if (j == 0) {
-	  printf("OK:  %s\n", fname);
-	} else {
-	  printf("OK:  %s (%d%s checksum in nfo)\n", fname, j + 1, j == 1 ? "nd" : (j == 2 ? "rd" : "th"));
+      } else if (type == CKMD5_ILLEGAL_NAME) {
+	continue;
+      } else if (type == CKMD5_LONG_NAME) {
+	fprintf(stderr, "%s: too long a name\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_NO_META) {
+	/* changing extension didn't help. try other tricks. */
+	char tempname[PATH_MAX];
+	if (strip_strcase(tempname, fname, "-part?", sizeof(tempname))) {
+	  type = get_meta_file(&metafile, tempname);
 	}
-	break;
-      } 
-      place += 33;
-    }
+      }
+      
+      if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+	fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_ILLEGAL_NAME) {
+	continue;
+      } else if (type == CKMD5_LONG_NAME) {
+	fprintf(stderr, "%s: too long a name\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_NO_META) {
+	/* stripping -part? didn't help. try other tricks. */
+	char tempname[PATH_MAX];
+	if (strip_strcase(tempname, fname, "-cd?", sizeof(tempname))) {
+	  type = get_meta_file(&metafile, tempname);
+	}
+      }
+      
+      if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+	fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_ILLEGAL_NAME) {
+	continue;
+      } else if (type == CKMD5_LONG_NAME) {
+	fprintf(stderr, "%s: too long a name\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_NO_META) {
+	/* stripping -cd? didn't help. try other tricks. */
+	char tempname[PATH_MAX];
+	if (strip_strcase(tempname, fname, "-sample", sizeof(tempname))) {
+	  type = get_meta_file(&metafile, tempname);
+	}
+      }
+      
+      if (type < CKMD5_ILLEGAL_NAME || type > CKMD5_MD5_NAME) {
+	fprintf(stderr, "holy shit. ckmd5 is bugs with %s\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_ILLEGAL_NAME) {
+	continue;
+      } else if (type == CKMD5_LONG_NAME) {
+	fprintf(stderr, "%s: too long a name\n", fname);
+	main_ret = 1;
+	continue;
+      } else if (type == CKMD5_NO_META) {
+	/* tricks didn't help. continue. */
+	fprintf(stderr, "%s: can not find .nfo or .md5 file\n", fname);
+	main_ret = 1;
+	continue;
+      }
 
-    if (j == n_sums) {
-      printf("BAD: %s\n", fname);
-      main_ret = 1;
+      checksums = 0;
+      n_sums = handle_meta_file(&checksums, metafile, type == CKMD5_NFO_NAME);
+      fclose(metafile);
+      
+      if (n_sums == 0) {
+	printf("checksum not found: %s\n", fname);
+	main_ret = 1;
+	continue;
+      }
+
+      fd = open_regular_file(fname);
+
+      if (fd < 0) {
+	main_ret = 1;
+	continue;
+      }
+
+      ret = stream_checksum(md5str, fd, sizeof(md5str));
+
+      close(fd);
+
+      if (ret) {
+	main_ret = 1;
+	continue;
+      }
+
+      place = checksums;
+      for (j = 0; j < n_sums; j++) {
+	if (strcasecmp(md5str, place) == 0) {
+	  if (j == 0) {
+	    printf("OK:  %s\n", fname);
+	  } else {
+	    printf("OK:  %s (%d%s checksum in nfo)\n", fname, j + 1, j == 1 ? "nd" : (j == 2 ? "rd" : "th"));
+	  }
+	  break;
+	} 
+	place += 33;
+      }
+
+      if (j == n_sums) {
+	printf("BAD: %s\n", fname);
+	main_ret = 1;
+      }
+
+      free(checksums);
+
+    } else {
+
+      cf = fopen(fname, "r");
+      if (cf == NULL) {
+	main_ret = 1;
+	continue;
+      }
+
+      while (fgets(line, sizeof(line), cf)) {
+
+	linelen = strlen(line);
+
+	if (linelen < (32 + 2 + 1))
+	  continue;
+
+	if (line[linelen - 1] == '\n') {
+	  linelen--;
+	  line[linelen] = 0;
+	}
+
+	if (strspn(line, "0123456789abcdefABCDEF") == 32) {
+	  int idx;
+
+	  if (line[32] != ' ')
+	    continue;
+
+	  if (line[33] != '*' && line[33] != ' ')
+	    continue;
+
+	  idx = 34;
+
+	  /* check that the filename exists */
+	  if (line[idx] == 0)
+	    continue;
+
+	  line[32] = 0;
+
+	  fd = open_regular_file(&line[idx]);
+	  if (fd < 0) {
+	    main_ret = 1;
+	    continue;
+	  }
+
+	  ret = stream_checksum(md5str, fd, sizeof(md5str));
+	  close(fd);
+	  if (ret) {
+	    main_ret = 1;
+	    continue;
+	  }
+
+	  if (strcasecmp(md5str, line) == 0) {
+	    printf("OK:  %s\n", &line[idx]);
+	  } else {
+	    printf("BAD: %s\n", &line[idx]);
+	    main_ret = 1;
+	  }
+	}
+      }
+
+      fclose(cf);
     }
 
     fflush(stdout);
     fflush(stderr);
-
-    free(checksums);
   }
 
   return main_ret;
