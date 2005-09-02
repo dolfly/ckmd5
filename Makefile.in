@@ -4,8 +4,10 @@ CFLAGS = -Wall -O2
 all:	ckmd5
 
 install:	all
-	mkdir -p {DEST}
-	install ckmd5 {DEST}/
+	mkdir -p "{BINDEST}"
+	mkdir -p "{DOCDEST}"
+	install ckmd5 "{BINDEST}/"
+	cp README "{DOCDEST}/"
 
 clean:	
 	rm -f ckmd5 configure.test *.o *~

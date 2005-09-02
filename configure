@@ -1,15 +1,18 @@
 #!/bin/sh
 
-prefix=/usr/local
+prefix="/usr/local"
+packageprefix=""
 
 for opt in "$@" ; do
 	case $opt in
+	--package-prefix=*)
+		packageprefix=`echo $opt | sed -n 's/--package-prefix=\(.*\)/\1/p'`
+		;;	  
 	--prefix=*)
 		prefix=`echo $opt | sed -n 's/--prefix=\(.*\)/\1/p'`
 		;;
 	*)
-		echo "configure parameter error"
-		exit
+		echo "ignoring configure parameter: $opt"
 		;;
 	esac
 done
@@ -26,6 +29,16 @@ else
     exit
 fi
 
-sed -e "s|{DEST}|$prefix/bin|g" < Makefile.in > Makefile
+if test -z "$packageprefix" ; then
+    dst="$prefix/bin"
+else
+    dst="$packageprefix$prefix/bin"
+fi
 
-echo "would install ckmd5 to $prefix/bin"
+sed -e "s|{DEST}|$dst|g" < Makefile.in > Makefile
+
+echo
+echo "Configuration parameters given:"
+echo "Prefix: $prefix"
+echo "Package prefix: $packageprefix"
+echo
