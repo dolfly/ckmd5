@@ -289,10 +289,43 @@ static void print_version(void)
 static void print_help(char *prog)
 {
   printf("ckmd5 usage:\n\n");
-  printf(" %s FILE1 FILE2 ...\n\n", prog);
-  printf("In addition printing OK / BAD for each checksum found, ckmd5 returns non-zero\n");
-  printf("exit code if any of the checked files either didn't have checksum or checksum\n");
-  printf("was bad.\n");
+  printf(" %s [-c] FILE1 [FILE2 ...]\n", prog);
+  printf("\n");
+  printf("ckmd5 verifies md5 checksums from .nfo and .md5 files. It has two modes:\n");
+  printf("\n");
+  printf("Mode 1:\n");
+  printf("For each given file (say, FILE1.avi, FILE2.mpg, ...) ckmd5 looks for an\n");
+  printf("associated nfo or md5 file. If one is found, it scans that file for md5\n");
+  printf("checksums. Each checksum must have string 'md5' on the same line before the\n");
+  printf("actual checksum. For example, the nfo should contain a line:\n");
+  printf("\n");
+  printf("        md5sum: 14758f1afd44c09b7992073ccf00b43d\n");
+  printf("\n");
+  printf("It grabs those checksums, and computes md5 checksums of the given\n");
+  printf("files. Computed checksums are compared to reference checksums. If any\n");
+  printf("checksum in an associated nfo/md5 file matches that of the computed checksum,\n");
+  printf("the file is considered valid and success is returned. Otherwise an error is\n");
+  printf("returned. Note that this mode does not read filenames from nfo/md5 files like\n");
+  printf("normal 'md5sum -c md5.txt' does.\n");
+  printf("\n");
+  printf("Mode 2:\n");
+  printf("By using -c switch the ckmd5 operates like 'md5sum -c' does. It reads lines\n");
+  printf("from a given text file, and compares found checksums with checksums of files\n");
+  printf("listed in the same text file. man md5sum for more info.\n");
+  printf("\n");
+  printf("Examples:\n");
+  printf("\n");
+  printf(" 1: Given an avi file, and an nfo file with mode 1 compliant checksums inside:\n");
+  printf("        ckmd5 foo.avi\n");
+  printf("    Should report whether foo.nfo contains valid or invalid checksum.\n");
+  printf("\n");
+
+  printf(" 2: Following should return success for ckmd5:\n");
+  printf("        echo >> foo.nfo\n");
+  printf("        md5sum foo.avi >> foo.nfo\n");
+  printf("        ckmd5 -c foo.nfo\n");
+  printf("\n");
+
 }
 
 
