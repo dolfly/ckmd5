@@ -175,7 +175,7 @@ static int handle_meta_file(char **checksums, FILE *metafile, int is_nfo)
 
   while (1) {
     if (fgets(line, sizeof(line), metafile) == NULL) {
-      if (feof(metafile) || ferror(metafile))
+      if (feof(metafile))
 	break;
 
       continue;
@@ -571,7 +571,7 @@ int main(int argc, char **argv)
 
       while (1) {
 	if (fgets(line, sizeof(line), cf) == NULL) {
-	  if (feof(cf) || ferror(cf))
+	  if (feof(cf))
 	    break;
 
 	  continue;
